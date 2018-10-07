@@ -1,0 +1,9 @@
+# .gitignore
+
+compressed/
+venv/
+# trained_models/
+
+activate_venv.ps1
+starting_kit/testBaseline.config
+glove.6b/glove.6b.100d.txt
