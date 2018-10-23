@@ -1,8 +1,9 @@
-# .gitignore
+.gitignore
 
+__pycache__/
 compressed/
 venv/
-# trained_models/
+trained_models/
 
 activate_venv.ps1
 starting_kit/testBaseline.config
