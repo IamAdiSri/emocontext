@@ -12,6 +12,9 @@ import re
 import io
 import sys
 
+# custom imports
+from pickler import Pickler
+
 # Path to training and testing data file. This data can be downloaded from a link, details of which will be provided.
 trainDataPath = ""
 testDataPath = ""
@@ -19,12 +22,15 @@ testDataPath = ""
 solutionPath = ""
 # Path to directory where GloVe file is saved.
 gloveDir = ""
+# Path to directory holding the word lists
+wordlistsDir = ""
 
 NUM_FOLDS = None                   # Value of K in K-fold Cross Validation
 NUM_CLASSES = None                 # Number of classes - Happy, Sad, Angry, Others
 MAX_NB_WORDS = None                # To set the upper limit on the number of tokens extracted using keras.preprocessing.text.Tokenizer 
 MAX_SEQUENCE_LENGTH = None         # All sentences having lesser number of words than this will be padded
 EMBEDDING_DIM = None               # The dimension of the word embeddings
+FEATURE_DIM = None                 # Number of manual features for every word
 BATCH_SIZE = None                  # The batch size to be chosen for training the model.
 LSTM_DIM = None                    # The dimension of the representations learnt by the LSTM model
 DROPOUT = None                     # Fraction of the units to drop for the linear transformation of the inputs. Ref - https://keras.io/layers/recurrent/
@@ -173,6 +179,56 @@ def writeNormalisedData(dataFilePath, texts):
                     # If label information not available (test time)
                     fout.write('\n')
 
+class Wordlists():
+    def __init__(self):
+        self.features = feature_dim
+
+        self.hedges       =  sorted( Pickler.load( os.path.join(wordlists_dir, 'hedges.pkl') ) )
+        self.factives     =  sorted( Pickler.load( os.path.join(wordlists_dir, 'factives.pkl') ) )
+        self.assertives   =  sorted( Pickler.load( os.path.join(wordlists_dir, 'assertives.pkl') ) )
+        self.implicatives =  sorted( Pickler.load( os.path.join(wordlists_dir, 'implicatives.pkl') ) )
+        self.reports      =  sorted( Pickler.load( os.path.join(wordlists_dir, 'reports.pkl') ) )
+        self.entailments  =  sorted( Pickler.load( os.path.join(wordlists_dir, 'entailments.pkl') ) )
+        self.subjectives  =  Pickler.load( os.path.join(wordlists_dir, 'subjectives.pkl') )
+        self.polarities   =  Pickler.load( os.path.join(wordlists_dir, 'polarity.pkl') )
+
+    def getWordfeatures(self, word):
+        """Extract all the features for the input word and return the feature vector
+        Input:
+            word : word string of the word for which features are to be extracted
+        Output:
+            fv : feature vector for the input word
+        """
+        fv = [0]*self.features
+
+        if word in self.hedges:
+            fv[0] = 1
+        if word in self.factives:
+            fv[1] = 1
+        if word in self.assertives:
+            fv[2] = 1
+        if word in self.implicatives:
+            fv[3] = 1
+        if word in self.reports:
+            fv[4] = 1
+        if word in self.entailments:
+            fv[5] = 1
+        try:
+            subj = self.subjectives[word]
+            if subj['pol'] == 'positive':
+                fv[6] = 1
+            if subj['type'] == 'strongsubj':
+                fv[7] = 1
+        except:
+            pass
+        try:
+            if self.polarities[word] == 'positive':
+                fv[8] = 1
+        except:
+            pass
+        
+        return fv
+            
 
 def getEmbeddingMatrix(wordIndex):
     """Populate an embedding matrix using a word-index. If the word "happy" has an index 19,
@@ -193,13 +249,17 @@ def getEmbeddingMatrix(wordIndex):
     
     print('Found %s word vectors.' % len(embeddingsIndex))
     
+    wordLists = Wordlists()
     # Minimum word index of any word is 1. 
-    embeddingMatrix = np.zeros((len(wordIndex) + 1, EMBEDDING_DIM))
+    embeddingMatrix = np.zeros((len(wordIndex) + 1, EMBEDDING_DIM + FEATURE_DIM))
     for word, i in wordIndex.items():
         embeddingVector = embeddingsIndex.get(word)
+        featureVector = wordLists.getWordfeatures(word)
         if embeddingVector is not None:
-            # words not found in embedding index will be all-zeros.
-            embeddingMatrix[i] = embeddingVector
+            # words not found in embedding index will be all-zeros for the embedding vector, although some features if found will be recorded.
+            embeddingMatrix[i] = embeddingVector + featureVector
+        else:
+            embeddingMatrix[i] = [0]*EMBEDDING_DIM + featureVector
     
     return embeddingMatrix
             
@@ -236,7 +296,7 @@ def main():
     with open(args.config) as configfile:
         config = json.load(configfile)
         
-    global trainDataPath, testDataPath, solutionPath, gloveDir
+    global trainDataPath, testDataPath, solutionPath, gloveDir, wordlistsDir
     global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, EMBEDDING_DIM
     global BATCH_SIZE, LSTM_DIM, DROPOUT, NUM_EPOCHS, LEARNING_RATE    
     
@@ -244,12 +304,14 @@ def main():
     testDataPath = config["test_data_path"]
     solutionPath = config["solution_path"]
     gloveDir = config["glove_dir"]
+    wordlistsDir = config["wordlists_dir"]
     
     NUM_FOLDS = config["num_folds"]
     NUM_CLASSES = config["num_classes"]
     MAX_NB_WORDS = config["max_nb_words"]
     MAX_SEQUENCE_LENGTH = config["max_sequence_length"]
     EMBEDDING_DIM = config["embedding_dim"]
+    FEATURE_DIM = config["feature_dim"]
     BATCH_SIZE = config["batch_size"]
     LSTM_DIM = config["lstm_dim"]
     DROPOUT = config["dropout"]
