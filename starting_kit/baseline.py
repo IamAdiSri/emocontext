@@ -181,16 +181,16 @@ def writeNormalisedData(dataFilePath, texts):
 
 class Wordlists():
     def __init__(self):
-        self.features = feature_dim
+        self.features = FEATURE_DIM
 
-        self.hedges       =  sorted( Pickler.load( os.path.join(wordlists_dir, 'hedges.pkl') ) )
-        self.factives     =  sorted( Pickler.load( os.path.join(wordlists_dir, 'factives.pkl') ) )
-        self.assertives   =  sorted( Pickler.load( os.path.join(wordlists_dir, 'assertives.pkl') ) )
-        self.implicatives =  sorted( Pickler.load( os.path.join(wordlists_dir, 'implicatives.pkl') ) )
-        self.reports      =  sorted( Pickler.load( os.path.join(wordlists_dir, 'reports.pkl') ) )
-        self.entailments  =  sorted( Pickler.load( os.path.join(wordlists_dir, 'entailments.pkl') ) )
-        self.subjectives  =  Pickler.load( os.path.join(wordlists_dir, 'subjectives.pkl') )
-        self.polarities   =  Pickler.load( os.path.join(wordlists_dir, 'polarity.pkl') )
+        self.hedges       =  sorted( Pickler.load( os.path.join(wordlistsDir, 'hedges.pkl') ) )
+        self.factives     =  sorted( Pickler.load( os.path.join(wordlistsDir, 'factives.pkl') ) )
+        self.assertives   =  sorted( Pickler.load( os.path.join(wordlistsDir, 'assertives.pkl') ) )
+        self.implicatives =  sorted( Pickler.load( os.path.join(wordlistsDir, 'implicatives.pkl') ) )
+        self.reports      =  sorted( Pickler.load( os.path.join(wordlistsDir, 'reports.pkl') ) )
+        self.entailments  =  sorted( Pickler.load( os.path.join(wordlistsDir, 'entailments.pkl') ) )
+        self.subjectives  =  Pickler.load( os.path.join(wordlistsDir, 'subjectives.pkl') )
+        self.polarities   =  Pickler.load( os.path.join(wordlistsDir, 'polarity.pkl') )
 
     def getWordfeatures(self, word):
         """Extract all the features for the input word and return the feature vector
@@ -257,9 +257,9 @@ def getEmbeddingMatrix(wordIndex):
         featureVector = wordLists.getWordfeatures(word)
         if embeddingVector is not None:
             # words not found in embedding index will be all-zeros for the embedding vector, although some features if found will be recorded.
-            embeddingMatrix[i] = embeddingVector + featureVector
+            embeddingMatrix[i] = np.concatenate((embeddingVector, featureVector))
         else:
-            embeddingMatrix[i] = [0]*EMBEDDING_DIM + featureVector
+            embeddingMatrix[i] = np.concatenate(([0]*EMBEDDING_DIM, featureVector))
     
     return embeddingMatrix
             
@@ -272,7 +272,7 @@ def buildModel(embeddingMatrix):
         model : A basic LSTM model
     """
     embeddingLayer = Embedding(embeddingMatrix.shape[0],
-                                EMBEDDING_DIM,
+                                EMBEDDING_DIM + FEATURE_DIM,
                                 weights=[embeddingMatrix],
                                 input_length=MAX_SEQUENCE_LENGTH,
                                 trainable=False)
@@ -297,7 +297,7 @@ def main():
         config = json.load(configfile)
         
     global trainDataPath, testDataPath, solutionPath, gloveDir, wordlistsDir
-    global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, EMBEDDING_DIM
+    global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, EMBEDDING_DIM, FEATURE_DIM
     global BATCH_SIZE, LSTM_DIM, DROPOUT, NUM_EPOCHS, LEARNING_RATE    
     
     trainDataPath = config["train_data_path"]
