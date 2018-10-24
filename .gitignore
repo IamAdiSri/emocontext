@@ -3,7 +3,7 @@
 __pycache__/
 compressed/
 venv/
-trained_models/
+#trained_models/
 glove.6B/
 
 activate_venv.ps1
