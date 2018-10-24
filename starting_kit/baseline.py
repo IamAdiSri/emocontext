@@ -4,7 +4,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
 from keras.models import Sequential
-from keras.layers import Dense, Embedding, LSTM
+from keras.layers import Dense, Embedding, LSTM, Bidirectional
 from keras import optimizers
 from keras.models import load_model
 import json, argparse, os
@@ -264,7 +264,7 @@ def getEmbeddingMatrix(wordIndex):
     return embeddingMatrix
             
 
-def buildModel(embeddingMatrix):
+def buildModel0(embeddingMatrix):
     """Constructs the architecture of the model
     Input:
         embeddingMatrix : The embedding matrix to be loaded in the embedding layer.
@@ -279,6 +279,29 @@ def buildModel(embeddingMatrix):
     model = Sequential()
     model.add(embeddingLayer)
     model.add(LSTM(LSTM_DIM, dropout=DROPOUT))
+    model.add(Dense(NUM_CLASSES, activation='sigmoid'))
+    
+    rmsprop = optimizers.rmsprop(lr=LEARNING_RATE)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=rmsprop,
+                  metrics=['acc'])
+    return model
+
+def buildModel1(embeddingMatrix):
+    """Constructs the architecture of the model
+    Input:
+        embeddingMatrix : The embedding matrix to be loaded in the embedding layer.
+    Output:
+        model : A basic LSTM model
+    """
+    embeddingLayer = Embedding(embeddingMatrix.shape[0],
+                                EMBEDDING_DIM + FEATURE_DIM,
+                                weights=[embeddingMatrix],
+                                input_length=MAX_SEQUENCE_LENGTH,
+                                trainable=False)
+    model = Sequential()
+    model.add(embeddingLayer)
+    model.add(Bidirectional(LSTM(LSTM_DIM, dropout=DROPOUT)))
     model.add(Dense(NUM_CLASSES, activation='sigmoid'))
     
     rmsprop = optimizers.rmsprop(lr=LEARNING_RATE)
