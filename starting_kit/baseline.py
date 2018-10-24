@@ -390,7 +390,7 @@ def main():
         xVal = data[index1:index2]
         yVal = labels[index1:index2]
         print("Building model...")
-        model = buildModel(embeddingMatrix)
+        model = buildModel1(embeddingMatrix)
         model.fit(xTrain, yTrain, 
                   validation_data=(xVal, yVal),
                   epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
@@ -411,7 +411,7 @@ def main():
     print("\n======================================")
     
     print("Retraining model on entire data to create solution file")
-    model = buildModel(embeddingMatrix)
+    model = buildModel1(embeddingMatrix)
     model.fit(data, labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
     model.save('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
     # model = load_model('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
