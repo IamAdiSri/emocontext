@@ -264,31 +264,9 @@ def getEmbeddingMatrix(wordIndex):
     return embeddingMatrix
             
 
-def buildModel0(embeddingMatrix):
+def buildModel(embeddingMatrix):
     """Constructs the architecture of the model
-    Input:
-        embeddingMatrix : The embedding matrix to be loaded in the embedding layer.
-    Output:
-        model : A basic LSTM model
-    """
-    embeddingLayer = Embedding(embeddingMatrix.shape[0],
-                                EMBEDDING_DIM + FEATURE_DIM,
-                                weights=[embeddingMatrix],
-                                input_length=MAX_SEQUENCE_LENGTH,
-                                trainable=False)
-    model = Sequential()
-    model.add(embeddingLayer)
-    model.add(LSTM(LSTM_DIM, dropout=DROPOUT))
-    model.add(Dense(NUM_CLASSES, activation='sigmoid'))
-    
-    rmsprop = optimizers.rmsprop(lr=LEARNING_RATE)
-    model.compile(loss='categorical_crossentropy',
-                  optimizer=rmsprop,
-                  metrics=['acc'])
-    return model
-
-def buildModel1(embeddingMatrix):
-    """Constructs the architecture of the model
+    Features, BiLSTM
     Input:
         embeddingMatrix : The embedding matrix to be loaded in the embedding layer.
     Output:
@@ -308,8 +286,7 @@ def buildModel1(embeddingMatrix):
     model.compile(loss='categorical_crossentropy',
                   optimizer=rmsprop,
                   metrics=['acc'])
-    return model
-    
+    return model    
 
 def main():
     parser = argparse.ArgumentParser(description="Baseline Script for SemEval")
@@ -390,7 +367,7 @@ def main():
         xVal = data[index1:index2]
         yVal = labels[index1:index2]
         print("Building model...")
-        model = buildModel1(embeddingMatrix)
+        model = buildModel(embeddingMatrix)
         model.fit(xTrain, yTrain, 
                   validation_data=(xVal, yVal),
                   epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
@@ -411,7 +388,7 @@ def main():
     print("\n======================================")
     
     print("Retraining model on entire data to create solution file")
-    model = buildModel1(embeddingMatrix)
+    model = buildModel(embeddingMatrix)
     model.fit(data, labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
     model.save('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
     # model = load_model('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
