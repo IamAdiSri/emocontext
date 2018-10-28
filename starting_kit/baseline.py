@@ -334,8 +334,8 @@ def buildModel(fseMatrix, sseMatrix):
     # bilstm = Bidirectional(intermediary)
     bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
-    dl = Dense(NUM_CLASSES, activation='relu')(bilstm)
-    dl = Dense(NUM_CLASSES, activation='relu')(dl)
+    dl = Dense(16, activation='relu')(bilstm)
+    dl = Dense(16, activation='relu')(dl)
 
     output = Dense(NUM_CLASSES, activation='sigmoid')(dl)
 
