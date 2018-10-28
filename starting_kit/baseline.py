@@ -2,11 +2,12 @@
 import numpy as np
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical
+from keras.utils import to_categorical, plot_model
 from keras.models import Sequential
-from keras.layers import Dense, Embedding, LSTM, Bidirectional
+from keras.layers import Input, Dense, Embedding, LSTM, Bidirectional
+from keras.layers.merge import concatenate
 from keras import optimizers
-from keras.models import load_model
+from keras.models import load_model, Model
 import json, argparse, os
 import re
 import io
@@ -22,6 +23,8 @@ testDataPath = ""
 solutionPath = ""
 # Path to directory where GloVe file is saved.
 gloveDir = ""
+# Path to directory where SSE file is saved.
+sseDir = ""
 # Path to directory holding the word lists
 wordlistsDir = ""
 
@@ -29,8 +32,9 @@ NUM_FOLDS = None                   # Value of K in K-fold Cross Validation
 NUM_CLASSES = None                 # Number of classes - Happy, Sad, Angry, Others
 MAX_NB_WORDS = None                # To set the upper limit on the number of tokens extracted using keras.preprocessing.text.Tokenizer 
 MAX_SEQUENCE_LENGTH = None         # All sentences having lesser number of words than this will be padded
-EMBEDDING_DIM = None               # The dimension of the word embeddings
+GLOVE_DIM = None                   # The dimension of the GloVe embeddings
 FEATURE_DIM = None                 # Number of manual features for every word
+SSE_DIM = None                     # The dimension of the Sentiment-Specific embeddings
 BATCH_SIZE = None                  # The batch size to be chosen for training the model.
 LSTM_DIM = None                    # The dimension of the representations learnt by the LSTM model
 DROPOUT = None                     # Fraction of the units to drop for the linear transformation of the inputs. Ref - https://keras.io/layers/recurrent/
@@ -179,6 +183,7 @@ def writeNormalisedData(dataFilePath, texts):
                     # If label information not available (test time)
                     fout.write('\n')
 
+
 class Wordlists():
     def __init__(self):
         self.features = FEATURE_DIM
@@ -229,14 +234,13 @@ class Wordlists():
         
         return fv
             
-
-def getEmbeddingMatrix(wordIndex):
+def getFSEM(wordIndex):
     """Populate an embedding matrix using a word-index. If the word "happy" has an index 19,
        the 19th row in the embedding matrix should contain the embedding vector for the word "happy".
     Input:
         wordIndex : A dictionary of (word : index) pairs, extracted using a tokeniser
     Output:
-        embeddingMatrix : A matrix where every row has 100 dimensional GloVe embedding
+        fseMatrix : A matrix where every row has 309 dimensional GloVe + features embedding
     """
     embeddingsIndex = {}
     # Load the embedding vectors from ther GloVe file
@@ -251,41 +255,105 @@ def getEmbeddingMatrix(wordIndex):
     
     wordLists = Wordlists()
     # Minimum word index of any word is 1. 
-    embeddingMatrix = np.zeros((len(wordIndex) + 1, EMBEDDING_DIM + FEATURE_DIM))
+    fseMatrix = np.zeros((len(wordIndex) + 1, GLOVE_DIM + FEATURE_DIM))
     for word, i in wordIndex.items():
         embeddingVector = embeddingsIndex.get(word)
         featureVector = wordLists.getWordfeatures(word)
         if embeddingVector is not None:
             # words not found in embedding index will be all-zeros for the embedding vector, although some features if found will be recorded.
-            embeddingMatrix[i] = np.concatenate((embeddingVector, featureVector))
+            fseMatrix[i] = np.concatenate((embeddingVector, featureVector))
         else:
-            embeddingMatrix[i] = np.concatenate(([0]*EMBEDDING_DIM, featureVector))
+            fseMatrix[i] = np.concatenate(([0]*GLOVE_DIM, featureVector))
     
-    return embeddingMatrix
-            
+    return fseMatrix
 
-def buildModel(embeddingMatrix):
+def getSSEM(wordIndex):
+    """Populate an embedding matrix using a word-index. If the word "happy" has an index 19,
+       the 19th row in the embedding matrix should contain the embedding vector for the word "happy".
+    Input:
+        wordIndex : A dictionary of (word : index) pairs, extracted using a tokeniser
+    Output:
+        sseMatrix : A matrix where every row has 50 dimensional sentiment specific embedding
+    """
+    embeddingsIndex = {}
+    # Load the embedding vectors from ther GloVe file
+    with io.open(os.path.join(sseDir, 'sswe-u.txt'), encoding="utf8") as f:
+        for line in f:
+            values = line.split()
+            word = values[0]
+            embeddingVector = np.asarray(values[1:], dtype='float32')
+            embeddingsIndex[word] = embeddingVector
+    
+    print('Found %s word vectors.' % len(embeddingsIndex))
+    
+    wordLists = Wordlists()
+    # Minimum word index of any word is 1. 
+    sseMatrix = np.zeros((len(wordIndex) + 1, SSE_DIM))
+    for word, i in wordIndex.items():
+        embeddingVector = embeddingsIndex.get(word)
+        if embeddingVector is not None:
+            # words not found in embedding index will be all-zeros for the embedding vector, although some features if found will be recorded.
+            sseMatrix[i] = embeddingVector
+    
+    return sseMatrix
+
+
+def buildModel(fseMatrix, sseMatrix):
     """Constructs the architecture of the model
     Features, BiLSTM
     Input:
-        embeddingMatrix : The embedding matrix to be loaded in the embedding layer.
+        fseMatrix : The embedding matrix to be loaded in the embedding layer.
     Output:
         model : A basic LSTM model
     """
-    embeddingLayer = Embedding(embeddingMatrix.shape[0],
-                                EMBEDDING_DIM + FEATURE_DIM,
-                                weights=[embeddingMatrix],
-                                input_length=MAX_SEQUENCE_LENGTH,
-                                trainable=False)
-    model = Sequential()
-    model.add(embeddingLayer)
-    model.add(Bidirectional(LSTM(LSTM_DIM, dropout=DROPOUT)))
-    model.add(Dense(NUM_CLASSES, activation='sigmoid'))
+    input1 = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+    input2 = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype='int32')
+
+    fseLayer = Embedding(fseMatrix.shape[0],
+                                GLOVE_DIM + FEATURE_DIM,
+                                weights=[fseMatrix],
+                                input_length=MAX_SEQUENCE_LENGTH)
+    fseLayer.trainable=False
+    fseLayer = fseLayer(input1)
     
+    sseLayer = Embedding(sseMatrix.shape[0],
+                                SSE_DIM,
+                                weights=[sseMatrix],
+                                input_length=MAX_SEQUENCE_LENGTH)
+    sseLayer.trainable=False
+    sseLayer = sseLayer(input2)
+
+    hidden1 = LSTM(LSTM_DIM, dropout=0.2, return_sequences=True)(fseLayer)
+    hidden2 = LSTM(LSTM_DIM, dropout=0.2, return_sequences=True)(sseLayer)
+    # print("hidden shapes", hidden1._keras_shape, hidden2._keras_shape)
+
+    merge = concatenate([hidden1, hidden2])
+    # print("merge shapes", merge._keras_shape)
+
+    # intermediary = LSTM(70, dropout=0.5)(merge)
+    # bilstm = Bidirectional(intermediary)
+    bilstm = Bidirectional(LSTM(70, dropout=0.5))(merge)
+
+    dl = Dense(NUM_CLASSES, activation='relu')(bilstm)
+    dl = Dense(NUM_CLASSES, activation='relu')(dl)
+
+    output = Dense(NUM_CLASSES, activation='sigmoid')(dl)
+
+    # model = Sequential()
+    # model.add(embeddingLayer)
+    # model.add(Bidirectional(LSTM(LSTM_DIM, dropout=DROPOUT)))
+    # model.add(Dense(NUM_CLASSES, activation='sigmoid'))
+    
+    model = Model(inputs=[input1, input2], outputs=[output])
+
     rmsprop = optimizers.rmsprop(lr=LEARNING_RATE)
+    
     model.compile(loss='categorical_crossentropy',
                   optimizer=rmsprop,
                   metrics=['acc'])
+
+    # plot_model(model, to_file='architecture.png')
+    
     return model    
 
 def main():
@@ -296,22 +364,24 @@ def main():
     with open(args.config) as configfile:
         config = json.load(configfile)
         
-    global trainDataPath, testDataPath, solutionPath, gloveDir, wordlistsDir
-    global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, EMBEDDING_DIM, FEATURE_DIM
+    global trainDataPath, testDataPath, solutionPath, gloveDir, sseDir, wordlistsDir
+    global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, GLOVE_DIM, FEATURE_DIM, SSE_DIM
     global BATCH_SIZE, LSTM_DIM, DROPOUT, NUM_EPOCHS, LEARNING_RATE    
     
     trainDataPath = config["train_data_path"]
     testDataPath = config["test_data_path"]
     solutionPath = config["solution_path"]
     gloveDir = config["glove_dir"]
+    sseDir = config["sse_dir"]
     wordlistsDir = config["wordlists_dir"]
     
     NUM_FOLDS = config["num_folds"]
     NUM_CLASSES = config["num_classes"]
     MAX_NB_WORDS = config["max_nb_words"]
     MAX_SEQUENCE_LENGTH = config["max_sequence_length"]
-    EMBEDDING_DIM = config["embedding_dim"]
+    GLOVE_DIM = config["embedding_dim"]
     FEATURE_DIM = config["feature_dim"]
+    SSE_DIM = config["sse_dim"]
     BATCH_SIZE = config["batch_size"]
     LSTM_DIM = config["lstm_dim"]
     DROPOUT = config["dropout"]
@@ -335,8 +405,11 @@ def main():
     wordIndex = tokenizer.word_index
     print("Found %s unique tokens." % len(wordIndex))
 
-    print("Populating embedding matrix...")
-    embeddingMatrix = getEmbeddingMatrix(wordIndex)
+    print("Populating feature augmented semantic embedding matrix...")
+    fseMatrix = getFSEM(wordIndex)
+
+    print("Populating sentiment specific embedding matrix...")
+    sseMatrix = getSSEM(wordIndex)
 
     data = pad_sequences(trainSequences, maxlen=MAX_SEQUENCE_LENGTH)
     labels = to_categorical(np.asarray(labels))
@@ -367,9 +440,9 @@ def main():
         xVal = data[index1:index2]
         yVal = labels[index1:index2]
         print("Building model...")
-        model = buildModel(embeddingMatrix)
-        model.fit(xTrain, yTrain, 
-                  validation_data=(xVal, yVal),
+        model = buildModel(fseMatrix, sseMatrix)
+        model.fit([xTrain, xTrain], yTrain, 
+                  validation_data=([xVal, xVal], yVal),
                   epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
 
         predictions = model.predict(xVal, batch_size=BATCH_SIZE)
@@ -388,8 +461,8 @@ def main():
     print("\n======================================")
     
     print("Retraining model on entire data to create solution file")
-    model = buildModel(embeddingMatrix)
-    model.fit(data, labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
+    model = buildModel(fseMatrix, sseMatrix)
+    model.fit([data, data], labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
     model.save('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
     # model = load_model('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
 
@@ -408,7 +481,7 @@ def main():
     print("Completed. Model parameters: ")
     print("Learning rate : %.3f, LSTM Dim : %d, Dropout : %.3f, Batch_size : %d" 
           % (LEARNING_RATE, LSTM_DIM, DROPOUT, BATCH_SIZE))
-    
+
                
 if __name__ == '__main__':
     main()
