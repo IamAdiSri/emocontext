@@ -428,7 +428,7 @@ def main():
                "microF1" : []}
     
     print("Starting k-fold cross validation...")
-    for k in range(0):
+    for k in range(NUM_FOLDS):
         print('-'*40)
         print("Fold %d/%d" % (k+1, NUM_FOLDS))
         validationSize = int(len(data)/NUM_FOLDS)
@@ -452,19 +452,19 @@ def main():
         metrics["microRecall"].append(microRecall)
         metrics["microF1"].append(microF1)
         
-    #print("\n============= Metrics =================")
-    #print("Average Cross-Validation Accuracy : %.4f" % (sum(metrics["accuracy"])/len(metrics["accuracy"])))
-    #print("Average Cross-Validation Micro Precision : %.4f" % (sum(metrics["microPrecision"])/len(metrics["microPrecision"])))
-    #print("Average Cross-Validation Micro Recall : %.4f" % (sum(metrics["microRecall"])/len(metrics["microRecall"])))
-    #print("Average Cross-Validation Micro F1 : %.4f" % (sum(metrics["microF1"])/len(metrics["microF1"])))
+    print("\n============= Metrics =================")
+    print("Average Cross-Validation Accuracy : %.4f" % (sum(metrics["accuracy"])/len(metrics["accuracy"])))
+    print("Average Cross-Validation Micro Precision : %.4f" % (sum(metrics["microPrecision"])/len(metrics["microPrecision"])))
+    print("Average Cross-Validation Micro Recall : %.4f" % (sum(metrics["microRecall"])/len(metrics["microRecall"])))
+    print("Average Cross-Validation Micro F1 : %.4f" % (sum(metrics["microF1"])/len(metrics["microF1"])))
     
-    #print("\n======================================")
+    print("\n======================================")
     
-    #print("Retraining model on entire data to create solution file")
-    #model = buildModel(fseMatrix, sseMatrix)
-    #model.fit([data, data], labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
-    #model.save('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
-    model = load_model('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
+    print("Retraining model on entire data to create solution file")
+    model = buildModel(fseMatrix, sseMatrix)
+    model.fit([data, data], labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
+    model.save('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
+    # model = load_model('EP%d_LR%de-5_LDim%d_BS%d.h5'%(NUM_EPOCHS, int(LEARNING_RATE*(10**5)), LSTM_DIM, BATCH_SIZE))
 
     print("Creating solution file...")
     testData = pad_sequences(testSequences, maxlen=MAX_SEQUENCE_LENGTH)
