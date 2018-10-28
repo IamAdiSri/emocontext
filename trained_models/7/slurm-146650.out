@@ -1,0 +1,43 @@
+Selected GPU[0] GeForce GTX 1080 Ti as the process wide default device.
+[Note:] Trainer ctor: 2 of the model parameters are not covered by any of the specified Learners; these parameters will not be learned
+Using CNTK backend
+/home/aditya.srivastava/.local/lib/python3.5/site-packages/cntk/cntk_py_init.py:90: UserWarning: 
+
+################################################ Missing optional dependency (    MKL     ) ################################################
+   CNTK may crash if the component that depends on those dependencies is loaded.
+   Visit https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#mkl for more information.
+############################################################################################################################################
+
+  warnings.warn(WARNING_MSG % ('    MKL     ', 'https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#mkl'))
+/home/aditya.srivastava/.local/lib/python3.5/site-packages/cntk/cntk_py_init.py:98: UserWarning: 
+
+################################################ Missing optional dependency (GPU-Specific) ################################################
+   CNTK may crash if the component that depends on those dependencies is loaded.
+   Visit https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#optional-gpu-specific-packages for more information.
+############################################################################################################################################
+If you intend to use CNTK without GPU support, you can ignore the (likely) GPU-specific warning!
+############################################################################################################################################
+
+  warnings.warn(WARNING_MSG_GPU_ONLY % ('GPU-Specific', 'https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#optional-gpu-specific-packages'))
+/home/aditya.srivastava/.local/lib/python3.5/site-packages/cntk/cntk_py_init.py:102: UserWarning: 
+
+################################################ Missing optional dependency (   OpenCV   ) ################################################
+   CNTK may crash if the component that depends on those dependencies is loaded.
+   Visit https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#optional-opencv for more information.
+############################################################################################################################################
+
+  warnings.warn(WARNING_MSG % ('   OpenCV   ', 'https://docs.microsoft.com/en-us/cognitive-toolkit/Setup-Linux-Python#optional-opencv'))
+Processing training data...
+Processing test data...
+Extracting tokens...
+Found 16831 unique tokens.
+Populating feature augmented semantic embedding matrix...
+Found 400000 word vectors.
+Populating sentiment specific embedding matrix...
+Found 137052 word vectors.
+Shape of training data tensor:  (30160, 100)
+Shape of label tensor:  (30160, 4)
+Starting k-fold cross validation...
+Creating solution file...
+Completed. Model parameters: 
+Learning rate : 0.003, LSTM Dim : 128, Dropout : 0.500, Batch_size : 100
