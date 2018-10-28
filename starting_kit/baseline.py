@@ -323,8 +323,8 @@ def buildModel(fseMatrix, sseMatrix):
     sseLayer.trainable=False
     sseLayer = sseLayer(input2)
 
-    hidden1 = LSTM(LSTM_DIM, dropout=0.2, return_sequences=True)(fseLayer)
-    hidden2 = LSTM(LSTM_DIM, dropout=0.2, return_sequences=True)(sseLayer)
+    hidden1 = LSTM(LSTM_DIM, dropout=0.5, return_sequences=True)(fseLayer)
+    hidden2 = LSTM(LSTM_DIM, dropout=0.5, return_sequences=True)(sseLayer)
     # print("hidden shapes", hidden1._keras_shape, hidden2._keras_shape)
 
     merge = concatenate([hidden1, hidden2])
