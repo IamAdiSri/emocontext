@@ -468,7 +468,7 @@ def main():
 
     print("Creating solution file...")
     testData = pad_sequences(testSequences, maxlen=MAX_SEQUENCE_LENGTH)
-    predictions = model.predict(testData, batch_size=BATCH_SIZE)
+    predictions = model.predict([testData, testData], batch_size=BATCH_SIZE)
     predictions = predictions.argmax(axis=1)
 
     with io.open(solutionPath, "w", encoding="utf8") as fout:
