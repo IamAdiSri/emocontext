@@ -332,7 +332,7 @@ def buildModel(fseMatrix, sseMatrix):
 
     # intermediary = LSTM(70, dropout=0.5)(merge)
     # bilstm = Bidirectional(intermediary)
-    bilstm = Bidirectional(LSTM(70, dropout=0.5))(merge)
+    bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
     dl = Dense(NUM_CLASSES, activation='relu')(bilstm)
     dl = Dense(NUM_CLASSES, activation='relu')(dl)
