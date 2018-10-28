@@ -445,7 +445,7 @@ def main():
                   validation_data=([xVal, xVal], yVal),
                   epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
 
-        predictions = model.predict(xVal, batch_size=BATCH_SIZE)
+        predictions = model.predict([xVal, xVal], batch_size=BATCH_SIZE)
         accuracy, microPrecision, microRecall, microF1 = getMetrics(predictions, yVal)
         metrics["accuracy"].append(accuracy)
         metrics["microPrecision"].append(microPrecision)
