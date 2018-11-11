@@ -330,14 +330,16 @@ def buildModel(fseMatrix, sseMatrix):
     merge = concatenate([hidden1, hidden2])
     # print("merge shapes", merge._keras_shape)
 
-    # intermediary = LSTM(70, dropout=0.5)(merge)
+    intermediary = LSTM(lstm_dim, dropout=0.5)(merge)
+    intermediary = LSTM(lstm_dim, dropout=0.5)(intermediary)
     # bilstm = Bidirectional(intermediary)
-    bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
+    # bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
-    dl = Dense(16, activation='relu')(bilstm)
-    dl = Dense(16, activation='relu')(dl)
+    # dl = Dense(16, activation='relu')(bilstm)
+    # dl = Dense(16, activation='relu')(dl)
 
-    output = Dense(NUM_CLASSES, activation='sigmoid')(dl)
+    # output = Dense(NUM_CLASSES, activation='sigmoid')(dl)
+    output = Dense(NUM_CLASSES, activation='sigmoid')(intermediary)
 
     # model = Sequential()
     # model.add(embeddingLayer)
