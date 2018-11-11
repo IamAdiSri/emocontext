@@ -22,7 +22,7 @@ gloveDir = ""
 
 NUM_FOLDS = None                   # Value of K in K-fold Cross Validation
 NUM_CLASSES = None                 # Number of classes - Happy, Sad, Angry, Others
-MAX_NB_WORDS = None                # To set the upper limit on the number of tokens extracted using keras.preprocessing.text.Tokenizer 
+MAX_NB_WORDS = None                # To set the upper limit on the number of tokens extracted using keras.preprocessing.text.Tokenizer
 MAX_SEQUENCE_LENGTH = None         # All sentences having lesser number of words than this will be padded
 EMBEDDING_DIM = None               # The dimension of the word embeddings
 BATCH_SIZE = None                  # The batch size to be chosen for training the model.
@@ -64,24 +64,24 @@ def preprocessData(dataFilePath, mode):
                         lineSplit.remove('')
                     except:
                         break
-                cSpace = ' ' + c + ' '    
+                cSpace = ' ' + c + ' '
                 line = cSpace.join(lineSplit)
-            
+
             line = line.strip().split('\t')
             if mode == "train":
                 # Train data contains id, 3 turns and label
                 label = emotion2label[line[4]]
                 labels.append(label)
-            
+
             conv = ' <eos> '.join(line[1:4])
-            
+
             # Remove any duplicate spaces
             duplicateSpacePattern = re.compile(r'\ +')
             conv = re.sub(duplicateSpacePattern, ' ', conv)
-            
+
             indices.append(int(line[0]))
             conversations.append(conv.lower())
-    
+
     if mode == "train":
         return indices, conversations, labels
     else:
@@ -97,19 +97,19 @@ def getMetrics(predictions, ground):
         accuracy : Average accuracy
         microPrecision : Precision calculated on a micro level. Ref - https://datascience.stackexchange.com/questions/15989/micro-average-vs-macro-average-performance-in-a-multiclass-classification-settin/16001
         microRecall : Recall calculated on a micro level
-        microF1 : Harmonic mean of microPrecision and microRecall. Higher value implies better classification  
+        microF1 : Harmonic mean of microPrecision and microRecall. Higher value implies better classification
     """
     # [0.1, 0.3 , 0.2, 0.1] -> [0, 1, 0, 0]
     discretePredictions = to_categorical(predictions.argmax(axis=1))
-    
+
     truePositives = np.sum(discretePredictions*ground, axis=0)
     falsePositives = np.sum(np.clip(discretePredictions - ground, 0, 1), axis=0)
     falseNegatives = np.sum(np.clip(ground-discretePredictions, 0, 1), axis=0)
-    
+
     print("True Positives per class : ", truePositives)
     print("False Positives per class : ", falsePositives)
     print("False Negatives per class : ", falseNegatives)
-    
+
     # ------------- Macro level calculation ---------------
     macroPrecision = 0
     macroRecall = 0
@@ -121,29 +121,29 @@ def getMetrics(predictions, ground):
         macroRecall += recall
         f1 = ( 2 * recall * precision ) / (precision + recall) if (precision+recall) > 0 else 0
         print("Class %s : Precision : %.3f, Recall : %.3f, F1 : %.3f" % (label2emotion[c], precision, recall, f1))
-    
+
     macroPrecision /= 3
     macroRecall /= 3
     macroF1 = (2 * macroRecall * macroPrecision ) / (macroPrecision + macroRecall) if (macroPrecision+macroRecall) > 0 else 0
-    print("Ignoring the Others class, Macro Precision : %.4f, Macro Recall : %.4f, Macro F1 : %.4f" % (macroPrecision, macroRecall, macroF1))   
-    
+    print("Ignoring the Others class, Macro Precision : %.4f, Macro Recall : %.4f, Macro F1 : %.4f" % (macroPrecision, macroRecall, macroF1))
+
     # ------------- Micro level calculation ---------------
     truePositives = truePositives[1:].sum()
     falsePositives = falsePositives[1:].sum()
-    falseNegatives = falseNegatives[1:].sum()    
-    
+    falseNegatives = falseNegatives[1:].sum()
+
     print("Ignoring the Others class, Micro TP : %d, FP : %d, FN : %d" % (truePositives, falsePositives, falseNegatives))
-    
+
     microPrecision = truePositives / (truePositives + falsePositives)
     microRecall = truePositives / (truePositives + falseNegatives)
-    
+
     microF1 = ( 2 * microRecall * microPrecision ) / (microPrecision + microRecall) if (microPrecision+microRecall) > 0 else 0
     # -----------------------------------------------------
-    
+
     predictions = predictions.argmax(axis=1)
     ground = ground.argmax(axis=1)
     accuracy = np.mean(predictions==ground)
-    
+
     print("Accuracy : %.4f, Micro Precision : %.4f, Micro Recall : %.4f, Micro F1 : %.4f" % (accuracy, microPrecision, microRecall, microF1))
     return accuracy, microPrecision, microRecall, microF1
 
@@ -168,7 +168,7 @@ def writeNormalisedData(dataFilePath, texts):
                 fout.write(line[3] + '\t' + normalisedLine[2] + '\t')
                 try:
                     # If label information available (train time)
-                    fout.write(line[4] + '\n')    
+                    fout.write(line[4] + '\n')
                 except:
                     # If label information not available (test time)
                     fout.write('\n')
@@ -190,19 +190,19 @@ def getEmbeddingMatrix(wordIndex):
             word = values[0]
             embeddingVector = np.asarray(values[1:], dtype='float32')
             embeddingsIndex[word] = embeddingVector
-    
+
     print('Found %s word vectors.' % len(embeddingsIndex))
-    
-    # Minimum word index of any word is 1. 
+
+    # Minimum word index of any word is 1.
     embeddingMatrix = np.zeros((len(wordIndex) + 1, EMBEDDING_DIM))
     for word, i in wordIndex.items():
         embeddingVector = embeddingsIndex.get(word)
         if embeddingVector is not None:
             # words not found in embedding index will be all-zeros.
             embeddingMatrix[i] = embeddingVector
-    
+
     return embeddingMatrix
-            
+
 
 def buildModel(embeddingMatrix):
     """Constructs the architecture of the model
@@ -216,17 +216,24 @@ def buildModel(embeddingMatrix):
                                 weights=[embeddingMatrix],
                                 input_length=MAX_SEQUENCE_LENGTH,
                                 trainable=False)
-    model = Sequential()
-    model.add(embeddingLayer)
-    model.add(LSTM(LSTM_DIM, dropout=DROPOUT))
-    model.add(Dense(NUM_CLASSES, activation='sigmoid'))
-    
+    model0 = Sequential()
+    model0.add(embeddingLayer)
+    model0.add(LSTM(LSTM_DIM, dropout=DROPOUT))
+
+    model1 = Sequential()
+    model1.add(embeddingLayer)
+    model1.add(LSTM(LSTM_DIM, dropout=DROPOUT))
+
+    model2 = Sequential()
+    model2.add(Merge([model1,model2], mode='concat'))
+    model2.add(Dense(NUM_CLASSES, activation='sigmoid'))
+
     rmsprop = optimizers.rmsprop(lr=LEARNING_RATE)
-    model.compile(loss='categorical_crossentropy',
+    model2.compile(loss='categorical_crossentropy',
                   optimizer=rmsprop,
                   metrics=['acc'])
-    return model
-    
+    return model2
+
 
 def main():
     parser = argparse.ArgumentParser(description="Baseline Script for SemEval")
@@ -235,16 +242,16 @@ def main():
 
     with open(args.config) as configfile:
         config = json.load(configfile)
-        
+
     global trainDataPath, testDataPath, solutionPath, gloveDir
     global NUM_FOLDS, NUM_CLASSES, MAX_NB_WORDS, MAX_SEQUENCE_LENGTH, EMBEDDING_DIM
-    global BATCH_SIZE, LSTM_DIM, DROPOUT, NUM_EPOCHS, LEARNING_RATE    
-    
+    global BATCH_SIZE, LSTM_DIM, DROPOUT, NUM_EPOCHS, LEARNING_RATE
+
     trainDataPath = config["train_data_path"]
     testDataPath = config["test_data_path"]
     solutionPath = config["solution_path"]
     gloveDir = config["glove_dir"]
-    
+
     NUM_FOLDS = config["num_folds"]
     NUM_CLASSES = config["num_classes"]
     MAX_NB_WORDS = config["max_nb_words"]
@@ -255,10 +262,10 @@ def main():
     DROPOUT = config["dropout"]
     LEARNING_RATE = config["learning_rate"]
     NUM_EPOCHS = config["num_epochs"]
-        
+
     print("Processing training data...")
     trainIndices, trainTexts, labels = preprocessData(trainDataPath, mode="train")
-    # Write normalised text to file to check if normalisation works. Disabled now. Uncomment following line to enable   
+    # Write normalised text to file to check if normalisation works. Disabled now. Uncomment following line to enable
     # writeNormalisedData(trainDataPath, trainTexts)
     print("Processing test data...")
     testIndices, testTexts = preprocessData(testDataPath, mode="test")
@@ -280,18 +287,18 @@ def main():
     labels = to_categorical(np.asarray(labels))
     print("Shape of training data tensor: ", data.shape)
     print("Shape of label tensor: ", labels.shape)
-        
+
     # Randomize data
     np.random.shuffle(trainIndices)
     data = data[trainIndices]
     labels = labels[trainIndices]
-      
+
     # Perform k-fold cross validation
     metrics = {"accuracy" : [],
                "microPrecision" : [],
                "microRecall" : [],
                "microF1" : []}
-    
+
     print("Starting k-fold cross validation...")
     for k in range(NUM_FOLDS):
         print('-'*40)
@@ -299,14 +306,14 @@ def main():
         validationSize = int(len(data)/NUM_FOLDS)
         index1 = validationSize * k
         index2 = validationSize * (k+1)
-            
+
         xTrain = np.vstack((data[:index1],data[index2:]))
         yTrain = np.vstack((labels[:index1],labels[index2:]))
         xVal = data[index1:index2]
         yVal = labels[index1:index2]
         print("Building model...")
         model = buildModel(embeddingMatrix)
-        model.fit(xTrain, yTrain, 
+        model.fit(xTrain, yTrain,
                   validation_data=(xVal, yVal),
                   epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
 
@@ -316,15 +323,15 @@ def main():
         metrics["microPrecision"].append(microPrecision)
         metrics["microRecall"].append(microRecall)
         metrics["microF1"].append(microF1)
-        
+
     print("\n============= Metrics =================")
     print("Average Cross-Validation Accuracy : %.4f" % (sum(metrics["accuracy"])/len(metrics["accuracy"])))
     print("Average Cross-Validation Micro Precision : %.4f" % (sum(metrics["microPrecision"])/len(metrics["microPrecision"])))
     print("Average Cross-Validation Micro Recall : %.4f" % (sum(metrics["microRecall"])/len(metrics["microRecall"])))
     print("Average Cross-Validation Micro F1 : %.4f" % (sum(metrics["microF1"])/len(metrics["microF1"])))
-    
+
     print("\n======================================")
-    
+
     print("Retraining model on entire data to create solution file")
     model = buildModel(embeddingMatrix)
     model.fit(data, labels, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
@@ -337,16 +344,16 @@ def main():
     predictions = predictions.argmax(axis=1)
 
     with io.open(solutionPath, "w", encoding="utf8") as fout:
-        fout.write('\t'.join(["id", "turn1", "turn2", "turn3", "label"]) + '\n')        
+        fout.write('\t'.join(["id", "turn1", "turn2", "turn3", "label"]) + '\n')
         with io.open(testDataPath, encoding="utf8") as fin:
             fin.readline()
             for lineNum, line in enumerate(fin):
                 fout.write('\t'.join(line.strip().split('\t')[:4]) + '\t')
                 fout.write(label2emotion[predictions[lineNum]] + '\n')
     print("Completed. Model parameters: ")
-    print("Learning rate : %.3f, LSTM Dim : %d, Dropout : %.3f, Batch_size : %d" 
+    print("Learning rate : %.3f, LSTM Dim : %d, Dropout : %.3f, Batch_size : %d"
           % (LEARNING_RATE, LSTM_DIM, DROPOUT, BATCH_SIZE))
-    
-               
+
+
 if __name__ == '__main__':
     main()
