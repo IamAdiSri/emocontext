@@ -244,7 +244,7 @@ def getFSEM(wordIndex):
     """
     embeddingsIndex = {}
     # Load the embedding vectors from ther GloVe file
-    with io.open(os.path.join(gloveDir, 'glove.840B.300d.txt'), encoding="utf8") as f:
+    with io.open(os.path.join(gloveDir, 'glove.6B.300d.txt'), encoding="utf8") as f:
         for line in f:
             values = line.split()
             word = values[0]
