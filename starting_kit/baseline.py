@@ -244,7 +244,7 @@ def getFSEM(wordIndex):
     """
     embeddingsIndex = {}
     # Load the embedding vectors from ther GloVe file
-    with io.open(os.path.join(gloveDir, 'glove.6B.300d.txt'), encoding="utf8") as f:
+    with io.open(os.path.join(gloveDir, 'glove.840B.300d.txt'), encoding="utf8") as f:
         for line in f:
             values = line.split()
             word = values[0]
@@ -331,7 +331,7 @@ def buildModel(fseMatrix, sseMatrix):
     # print("merge shapes", merge._keras_shape)
 
     intermediary = LSTM(LSTM_DIM, dropout=0.5)(merge)
-    intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
+    # intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
     # bilstm = Bidirectional(intermediary)
     # bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
