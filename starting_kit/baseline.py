@@ -244,12 +244,15 @@ def getFSEM(wordIndex):
     """
     embeddingsIndex = {}
     # Load the embedding vectors from ther GloVe file
-    with io.open(os.path.join(gloveDir, 'glove.6B.300d.txt'), encoding="utf8") as f:
+    with io.open(os.path.join(gloveDir, 'glove.840B.300d.txt'), encoding="utf8") as f:
         for line in f:
-            values = line.split()
-            word = values[0]
-            embeddingVector = np.asarray(values[1:], dtype='float32')
-            embeddingsIndex[word] = embeddingVector
+            try:
+                values = line.split()
+                word = values[0]
+                embeddingVector = np.asarray(values[1:], dtype='float32')
+                embeddingsIndex[word] = embeddingVector
+            except:
+                pass
     
     print('Found %s word vectors.' % len(embeddingsIndex))
     
@@ -330,8 +333,8 @@ def buildModel(fseMatrix, sseMatrix):
     merge = concatenate([hidden1, hidden2])
     # print("merge shapes", merge._keras_shape)
 
-    intermediary = LSTM(LSTM_DIM, dropout=0.5)(merge)
-    intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
+    intermediary = LSTM(LSTM_DIM, dropout=0.3)(merge)
+    # intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
     # bilstm = Bidirectional(intermediary)
     # bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
@@ -436,7 +439,7 @@ def main():
     #     validationSize = int(len(data)/NUM_FOLDS)
     #     index1 = validationSize * k
     #     index2 = validationSize * (k+1)
-            
+    #         
     #     xTrain = np.vstack((data[:index1],data[index2:]))
     #     yTrain = np.vstack((labels[:index1],labels[index2:]))
     #     xVal = data[index1:index2]
