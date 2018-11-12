@@ -331,7 +331,7 @@ def buildModel(fseMatrix, sseMatrix):
     # print("merge shapes", merge._keras_shape)
 
     intermediary = LSTM(LSTM_DIM, dropout=0.5)(merge)
-    # intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
+    intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
     # bilstm = Bidirectional(intermediary)
     # bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
@@ -429,38 +429,38 @@ def main():
                "microRecall" : [],
                "microF1" : []}
     
-    print("Starting k-fold cross validation...")
-    for k in range(NUM_FOLDS):
-        print('-'*40)
-        print("Fold %d/%d" % (k+1, NUM_FOLDS))
-        validationSize = int(len(data)/NUM_FOLDS)
-        index1 = validationSize * k
-        index2 = validationSize * (k+1)
+    # print("Starting k-fold cross validation...")
+    # for k in range(NUM_FOLDS):
+    #     print('-'*40)
+    #     print("Fold %d/%d" % (k+1, NUM_FOLDS))
+    #     validationSize = int(len(data)/NUM_FOLDS)
+    #     index1 = validationSize * k
+    #     index2 = validationSize * (k+1)
             
-        xTrain = np.vstack((data[:index1],data[index2:]))
-        yTrain = np.vstack((labels[:index1],labels[index2:]))
-        xVal = data[index1:index2]
-        yVal = labels[index1:index2]
-        print("Building model...")
-        model = buildModel(fseMatrix, sseMatrix)
-        model.fit([xTrain, xTrain], yTrain, 
-                  validation_data=([xVal, xVal], yVal),
-                  epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
+    #     xTrain = np.vstack((data[:index1],data[index2:]))
+    #     yTrain = np.vstack((labels[:index1],labels[index2:]))
+    #     xVal = data[index1:index2]
+    #     yVal = labels[index1:index2]
+    #     print("Building model...")
+    #     model = buildModel(fseMatrix, sseMatrix)
+    #     model.fit([xTrain, xTrain], yTrain, 
+    #               validation_data=([xVal, xVal], yVal),
+    #               epochs=NUM_EPOCHS, batch_size=BATCH_SIZE)
 
-        predictions = model.predict([xVal, xVal], batch_size=BATCH_SIZE)
-        accuracy, microPrecision, microRecall, microF1 = getMetrics(predictions, yVal)
-        metrics["accuracy"].append(accuracy)
-        metrics["microPrecision"].append(microPrecision)
-        metrics["microRecall"].append(microRecall)
-        metrics["microF1"].append(microF1)
+    #     predictions = model.predict([xVal, xVal], batch_size=BATCH_SIZE)
+    #     accuracy, microPrecision, microRecall, microF1 = getMetrics(predictions, yVal)
+    #     metrics["accuracy"].append(accuracy)
+    #     metrics["microPrecision"].append(microPrecision)
+    #     metrics["microRecall"].append(microRecall)
+    #     metrics["microF1"].append(microF1)
         
-    print("\n============= Metrics =================")
-    print("Average Cross-Validation Accuracy : %.4f" % (sum(metrics["accuracy"])/len(metrics["accuracy"])))
-    print("Average Cross-Validation Micro Precision : %.4f" % (sum(metrics["microPrecision"])/len(metrics["microPrecision"])))
-    print("Average Cross-Validation Micro Recall : %.4f" % (sum(metrics["microRecall"])/len(metrics["microRecall"])))
-    print("Average Cross-Validation Micro F1 : %.4f" % (sum(metrics["microF1"])/len(metrics["microF1"])))
+    # print("\n============= Metrics =================")
+    # print("Average Cross-Validation Accuracy : %.4f" % (sum(metrics["accuracy"])/len(metrics["accuracy"])))
+    # print("Average Cross-Validation Micro Precision : %.4f" % (sum(metrics["microPrecision"])/len(metrics["microPrecision"])))
+    # print("Average Cross-Validation Micro Recall : %.4f" % (sum(metrics["microRecall"])/len(metrics["microRecall"])))
+    # print("Average Cross-Validation Micro F1 : %.4f" % (sum(metrics["microF1"])/len(metrics["microF1"])))
     
-    print("\n======================================")
+    # print("\n======================================")
     
     print("Retraining model on entire data to create solution file")
     model = buildModel(fseMatrix, sseMatrix)
