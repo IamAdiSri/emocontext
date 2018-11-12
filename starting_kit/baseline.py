@@ -330,8 +330,8 @@ def buildModel(fseMatrix, sseMatrix):
     merge = concatenate([hidden1, hidden2])
     # print("merge shapes", merge._keras_shape)
 
-    intermediary = LSTM(lstm_dim, dropout=0.5)(merge)
-    intermediary = LSTM(lstm_dim, dropout=0.5)(intermediary)
+    intermediary = LSTM(LSTM_DIM, dropout=0.5)(merge)
+    intermediary = LSTM(LSTM_DIM, dropout=0.5)(intermediary)
     # bilstm = Bidirectional(intermediary)
     # bilstm = Bidirectional(LSTM(LSTM_DIM, dropout=0.5))(merge)
 
